@@ -10,6 +10,7 @@ pub mod config;
 pub mod mode;
 pub mod tui;
 pub mod utils;
+pub mod data_services;
 
 use clap::Parser;
 use cli::Cli;
