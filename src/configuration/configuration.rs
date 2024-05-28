@@ -16,8 +16,6 @@ use tracing::error;
 use tracing_error::ErrorLayer;
 use tracing_subscriber::{self, prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt, Layer};
 
-use crate::{action::Action, mode::Mode};
-
 use super::{keybindings::KeyBindings, styles::Styles};
 
 const CONFIG: &str = include_str!("../../.config/config.json5");
@@ -146,7 +144,7 @@ mod tests {
   use pretty_assertions::assert_eq;
 
   use super::*;
-  use crate::configuration::keybindings::parse_key_sequence;
+  use crate::{configuration::keybindings::parse_key_sequence, tui::{action::Action, mode::Mode}};
 
   #[test]
   fn test_config() -> Result<()> {

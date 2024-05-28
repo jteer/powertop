@@ -2,12 +2,9 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 
-pub mod action;
 pub mod app;
 pub mod cli;
-pub mod components;
 pub mod data_services;
-pub mod mode;
 pub mod tui;
 pub mod utils;
 pub mod logging;

@@ -11,8 +11,9 @@ use serde::{
 };
 use serde_json::Value as JsonValue;
 
-use crate::{action::Action, configuration::configuration::{get_config_dir, get_data_dir}, mode::Mode};
-
+use crate::{
+  configuration::configuration::{get_config_dir, get_data_dir}, tui::mode::Mode,
+};
 
 #[derive(Clone, Debug, Default, Deref, DerefMut)]
 pub struct Styles(pub HashMap<Mode, HashMap<String, Style>>);

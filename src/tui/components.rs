@@ -3,13 +3,13 @@ use crossterm::event::{KeyEvent, MouseEvent};
 use ratatui::layout::Rect;
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::{
-  action::Action, configuration::configuration::Config, tui::{Event, Frame}
-};
+use super::tui::{Event, Frame};
+use crate::{configuration::configuration::Config, tui::action::Action};
 
+
+pub mod cpu;
 pub mod fps;
 pub mod home;
-pub mod cpu;
 
 /// `Component` is a trait that represents a visual and interactive element of the user interface.
 /// Implementors of this trait can be registered with the main application loop and will be able to receive events,

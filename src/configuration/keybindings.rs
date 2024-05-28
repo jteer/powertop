@@ -1,5 +1,4 @@
 use std::{collections::HashMap, fmt, path::PathBuf};
-
 use color_eyre::eyre::Result;
 use config::Value;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -10,9 +9,7 @@ use serde::{
   Deserialize, Serialize,
 };
 use serde_json::Value as JsonValue;
-
-use crate::{action::Action, configuration::configuration::{get_config_dir, get_data_dir}, mode::Mode};
-
+use crate::{configuration::configuration::{get_config_dir, get_data_dir}, tui::{action::Action, mode::Mode}};
 
 #[derive(Clone, Debug, Default, Deref, DerefMut)]
 pub struct KeyBindings(pub HashMap<Mode, HashMap<Vec<KeyEvent>, Action>>);
