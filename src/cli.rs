@@ -2,7 +2,8 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
-use crate::utils::version;
+use crate::configuration::configuration::version;
+
 
 #[derive(Parser, Debug)]
 #[command(author, version = version(), about)]
