@@ -7,10 +7,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{Component, Frame};
-use crate::{
-  action::Action,
-  config::{Config, KeyBindings},
-};
+use crate::{action::Action, configuration::configuration::Config};
 
 #[derive(Default)]
 pub struct Home {

@@ -6,14 +6,12 @@ pub mod action;
 pub mod app;
 pub mod cli;
 pub mod components;
-pub mod config;
 pub mod data_services;
 pub mod mode;
 pub mod tui;
 pub mod utils;
 pub mod logging;
 pub mod configuration;
-
 use std::sync::{Arc, Mutex};
 
 use clap::Parser;

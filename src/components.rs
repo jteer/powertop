@@ -4,9 +4,7 @@ use ratatui::layout::Rect;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
-  action::Action,
-  config::Config,
-  tui::{Event, Frame},
+  action::Action, configuration::configuration::Config, tui::{Event, Frame}
 };
 
 pub mod fps;

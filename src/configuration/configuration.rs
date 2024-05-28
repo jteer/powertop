@@ -1,11 +1,26 @@
-use std::path::PathBuf;
+use std::{collections::HashMap, fmt, path::PathBuf};
 
 use color_eyre::eyre::Result;
+use config::Value;
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use derive_deref::{Deref, DerefMut};
 use directories::ProjectDirs;
 use lazy_static::lazy_static;
+use ratatui::style::{Color, Modifier, Style};
+use serde::{
+  de::{self, Deserializer, MapAccess, Visitor},
+  Deserialize, Serialize,
+};
+use serde_json::Value as JsonValue;
 use tracing::error;
 use tracing_error::ErrorLayer;
 use tracing_subscriber::{self, prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt, Layer};
+
+use crate::{action::Action, mode::Mode};
+
+use super::{keybindings::KeyBindings, styles::Styles};
+
+const CONFIG: &str = include_str!("../../.config/config.json5");
 
 pub const VERSION_MESSAGE: &str =
   concat!(env!("CARGO_PKG_VERSION"), "-", env!("VERGEN_GIT_DESCRIBE"), " (", env!("VERGEN_BUILD_DATE"), ")");
@@ -60,4 +75,86 @@ pub fn version() -> String {
   Config directory: {config_dir_path}
   Data directory: {data_dir_path}"
   )
+}
+
+#[derive(Clone, Debug, Deserialize, Default)]
+pub struct AppConfig {
+  #[serde(default)]
+  pub _data_dir: PathBuf,
+  #[serde(default)]
+  pub _config_dir: PathBuf,
+}
+
+#[derive(Clone, Debug, Default, Deserialize)]
+pub struct Config {
+  #[serde(default, flatten)]
+  pub config: AppConfig,
+  #[serde(default)]
+  pub keybindings: KeyBindings,
+  #[serde(default)]
+  pub styles: Styles,
+}
+
+impl Config {
+  pub fn new() -> Result<Self, config::ConfigError> {
+    let default_config: Config = json5::from_str(CONFIG).unwrap();
+    let data_dir = get_data_dir();
+    let config_dir = get_config_dir();
+    let mut builder = config::Config::builder()
+      .set_default("_data_dir", data_dir.to_str().unwrap())?
+      .set_default("_config_dir", config_dir.to_str().unwrap())?;
+
+    let config_files = [
+      ("config.json5", config::FileFormat::Json5),
+      ("config.json", config::FileFormat::Json),
+      ("config.yaml", config::FileFormat::Yaml),
+      ("config.toml", config::FileFormat::Toml),
+      ("config.ini", config::FileFormat::Ini),
+    ];
+    let mut found_config = false;
+    for (file, format) in &config_files {
+      builder = builder.add_source(config::File::from(config_dir.join(file)).format(*format).required(false));
+      if config_dir.join(file).exists() {
+        found_config = true
+      }
+    }
+    if !found_config {
+      log::error!("No configuration file found. Application may not behave as expected");
+    }
+
+    let mut cfg: Self = builder.build()?.try_deserialize()?;
+
+    for (mode, default_bindings) in default_config.keybindings.iter() {
+      let user_bindings = cfg.keybindings.entry(*mode).or_default();
+      for (key, cmd) in default_bindings.iter() {
+        user_bindings.entry(key.clone()).or_insert_with(|| cmd.clone());
+      }
+    }
+    for (mode, default_styles) in default_config.styles.iter() {
+      let user_styles = cfg.styles.entry(*mode).or_default();
+      for (style_key, style) in default_styles.iter() {
+        user_styles.entry(style_key.clone()).or_insert_with(|| *style);
+      }
+    }
+
+    Ok(cfg)
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use pretty_assertions::assert_eq;
+
+  use super::*;
+  use crate::configuration::keybindings::parse_key_sequence;
+
+  #[test]
+  fn test_config() -> Result<()> {
+    let c = Config::new()?;
+    assert_eq!(
+      c.keybindings.get(&Mode::Home).unwrap().get(&parse_key_sequence("<q>").unwrap_or_default()).unwrap(),
+      &Action::Quit
+    );
+    Ok(())
+  }
 }

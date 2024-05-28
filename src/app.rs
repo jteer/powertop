@@ -10,7 +10,7 @@ use tokio::sync::mpsc;
 use crate::{
   action::Action,
   components::{cpu::Cpu, fps::FpsCounter, home::Home, Component},
-  config::Config,
+  configuration::configuration::Config,
   mode::Mode,
   tui,
 };
