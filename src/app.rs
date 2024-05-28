@@ -1,12 +1,15 @@
+use std::sync::Arc;
+
 use color_eyre::eyre::Result;
 use crossterm::event::KeyEvent;
 use ratatui::prelude::Rect;
 use serde::{Deserialize, Serialize};
+use sysinfo::System;
 use tokio::sync::mpsc;
 
 use crate::{
   action::Action,
-  components::{fps::FpsCounter, home::Home, cpu::Cpu, Component},
+  components::{cpu::Cpu, fps::FpsCounter, home::Home, Component},
   config::Config,
   mode::Mode,
   tui,
@@ -27,10 +30,11 @@ impl App {
   pub fn new(tick_rate: f64, frame_rate: f64) -> Result<Self> {
     let home = Home::new();
     let fps = FpsCounter::default();
-    let cpu = Cpu::default();
+    let cpu = Cpu::new();
+
     let config = Config::new()?;
     let mode = Mode::Home;
-    Ok(Self {
+    Ok(App {
       tick_rate,
       frame_rate,
       components: vec![Box::new(cpu)],
@@ -86,6 +90,7 @@ impl App {
               }
             };
           },
+          tui::Event::DataUpdate(ref data) => action_tx.send(Action::DataUpdate(data.clone()))?,
           _ => {},
         }
         for component in self.components.iter_mut() {
@@ -127,6 +132,8 @@ impl App {
               }
             })?;
           },
+          // Since we do not need to currently do anything extra with the data we can let the loop below handle sending the action to each component.
+          // Action::DataUpdate(boxed_data) => {},
           _ => {},
         }
         for component in self.components.iter_mut() {
