@@ -144,7 +144,10 @@ mod tests {
   use pretty_assertions::assert_eq;
 
   use super::*;
-  use crate::{configuration::keybindings::parse_key_sequence, tui::{action::Action, mode::Mode}};
+  use crate::{
+    configuration::keybindings::parse_key_sequence,
+    tui::{action::Action, mode::Mode},
+  };
 
   #[test]
   fn test_config() -> Result<()> {

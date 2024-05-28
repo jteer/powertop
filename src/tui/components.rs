@@ -6,7 +6,6 @@ use tokio::sync::mpsc::UnboundedSender;
 use super::tui::{Event, Frame};
 use crate::{configuration::configuration::Config, tui::action::Action};
 
-
 pub mod cpu;
 pub mod fps;
 pub mod home;

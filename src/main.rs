@@ -4,11 +4,11 @@
 
 pub mod app;
 pub mod cli;
+pub mod configuration;
 pub mod data_services;
+pub mod logging;
 pub mod tui;
 pub mod utils;
-pub mod logging;
-pub mod configuration;
 use std::sync::{Arc, Mutex};
 
 use clap::Parser;
@@ -17,10 +17,7 @@ use color_eyre::eyre::Result;
 use logging::logging::initialize_logging;
 use sysinfo::System;
 
-use crate::{
-  app::App,
-  utils::initialize_panic_handler,
-};
+use crate::{app::App, utils::initialize_panic_handler};
 
 async fn tokio_main() -> Result<()> {
   initialize_logging()?;

@@ -4,7 +4,7 @@ use color_eyre::eyre::Result;
 use serde::{Deserialize, Serialize};
 use sysinfo::System;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize,)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CpuData {
   pub cpu_name: String,
   pub vendor_id: String,

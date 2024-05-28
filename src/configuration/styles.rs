@@ -12,7 +12,8 @@ use serde::{
 use serde_json::Value as JsonValue;
 
 use crate::{
-  configuration::configuration::{get_config_dir, get_data_dir}, tui::mode::Mode,
+  configuration::configuration::{get_config_dir, get_data_dir},
+  tui::mode::Mode,
 };
 
 #[derive(Clone, Debug, Default, Deref, DerefMut)]

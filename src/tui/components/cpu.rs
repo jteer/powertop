@@ -7,7 +7,10 @@ use ratatui::{prelude::*, widgets::*};
 use sysinfo::System;
 
 use super::Component;
-use crate::{data_services::cpu::{get_cpu_info, CpuData, CpuDataCollection}, tui::action::Action};
+use crate::{
+  data_services::cpu::{get_cpu_info, CpuData, CpuDataCollection},
+  tui::action::Action,
+};
 
 const MAX_DATA_POINTS: usize = 20;
 
