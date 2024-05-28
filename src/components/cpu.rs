@@ -1,4 +1,4 @@
-use std::{cmp, collections::HashMap, sync::Arc, time::Instant};
+use std::{cmp, collections::HashMap, ops::Add, sync::Arc, time::Instant};
 
 use color_eyre::eyre::Result;
 use itertools::Itertools;
@@ -13,9 +13,9 @@ use crate::{
   tui::Frame,
 };
 
-const MAX_DATA_POINTS: i32 = 100;
+const MAX_DATA_POINTS: usize = 20;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct CpuStats {
   pub max_usage: f64,
   pub min_x: f64,
@@ -24,6 +24,7 @@ pub struct CpuStats {
   pub max_y: f64,
   // Map of Cpu Usage (Cpu_Name, (i, usage))
   pub cpu_groups: HashMap<String, Vec<(f64, f64)>>,
+  pub points: usize,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -53,6 +54,7 @@ impl Cpu {
         max_x: 0.0,
         min_y: 0.0,
         max_y: 0.0,
+        points: 0,
       },
     }
   }
@@ -64,8 +66,16 @@ impl Cpu {
     let mut max_x = f64::NEG_INFINITY;
     let mut min_y = f64::INFINITY;
     let mut max_y = f64::NEG_INFINITY;
-
     let mut max_from_new_data: f64 = 0.0;
+
+    // TODO: This clears the whole graph, we should instead use something like VecDeque so we can pop values from the left
+    // Which should look like the graph is moving?
+    if self.cpu_stats.points + 1 >= MAX_DATA_POINTS {
+      self.cpu_stats = CpuStats { max_x: self.cpu_stats.max_x, max_y: self.cpu_stats.max_y, ..Default::default() }
+    }
+
+    self.cpu_stats.points += 1;
+
     for (i, data) in new_data.iter().enumerate() {
       max_from_new_data = max_from_new_data.max(data.cpu_usage);
 
@@ -126,7 +136,7 @@ impl Cpu {
     if cfg!(debug_assertions) {
       datasets.push(
         Dataset::default()
-          .name("data2")
+          .name("test_data")
           .marker(symbols::Marker::Dot)
           .graph_type(GraphType::Line)
           .style(Style::default().red())
@@ -171,14 +181,14 @@ impl Component for Cpu {
 
     let x_axis = Axis::default()
       .style(Style::default().white())
-      .bounds([self.cpu_stats.min_x, self.cpu_stats.max_x])
-      .labels(vec!["0.0".into(), "5.0".into(), "10.0".into()]);
+      .bounds([0.0, MAX_DATA_POINTS as f64])
+      .labels(vec!["0.0".into(), MAX_DATA_POINTS.to_string().into()]);
 
     // Create the Y axis and define its properties
     let y_axis = Axis::default()
       .style(Style::default().white())
       .bounds([self.cpu_stats.min_y, self.cpu_stats.max_y])
-      .labels(vec!["0.0".into(), "5.0".into(), "10.0".into()]);
+      .labels(vec!["0.0".into(), self.cpu_stats.max_y.round().to_string().into()]);
 
     let datasets = self.get_datasets();
 
