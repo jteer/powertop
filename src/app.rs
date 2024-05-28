@@ -8,13 +8,13 @@ use sysinfo::System;
 use tokio::sync::mpsc;
 
 use crate::{
-  configuration::configuration::Config,
+  configuration::app_configuration::Config,
   tui::{
     self,
     action::Action,
     components::{cpu::Cpu, fps::FpsCounter, home::Home, Component},
     mode::Mode,
-    tui::{Event, Tui},
+    ui::{Event, Tui},
   },
 };
 

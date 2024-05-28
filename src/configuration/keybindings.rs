@@ -12,7 +12,7 @@ use serde::{
 use serde_json::Value as JsonValue;
 
 use crate::{
-  configuration::configuration::{get_config_dir, get_data_dir},
+  configuration::app_configuration::{get_config_dir, get_data_dir},
   tui::{action::Action, mode::Mode},
 };
 

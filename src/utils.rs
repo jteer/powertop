@@ -1,7 +1,7 @@
 use color_eyre::eyre::Result;
 use tracing::error;
 
-use crate::tui::tui::Tui;
+use crate::tui::ui::Tui;
 
 pub fn initialize_panic_handler() -> Result<()> {
   let (panic_hook, eyre_hook) = color_eyre::config::HookBuilder::default()

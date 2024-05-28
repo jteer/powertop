@@ -14,7 +14,7 @@ use std::sync::{Arc, Mutex};
 use clap::Parser;
 use cli::Cli;
 use color_eyre::eyre::Result;
-use logging::logging::initialize_logging;
+use logging::initialize_logging;
 use sysinfo::System;
 
 use crate::{app::App, utils::initialize_panic_handler};

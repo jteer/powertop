@@ -92,7 +92,7 @@ impl Cpu {
           existing_entry.append(&mut vec![((existing_entry.len() + 1) as f64, data.cpu_usage)]);
         }
       } else {
-        self.cpu_stats.cpu_groups.insert(data.cpu_name.clone(), vec![(1.0 as f64, data.cpu_usage)]);
+        self.cpu_stats.cpu_groups.insert(data.cpu_name.clone(), vec![(1.0_f64, data.cpu_usage)]);
       }
     }
 
@@ -106,7 +106,7 @@ impl Cpu {
   }
 
   fn get_datasets(&mut self) -> Vec<Dataset> {
-    let colors = vec![
+    let colors = [
       Style::default().cyan(),
       Style::default().magenta(),
       Style::default().yellow(),
@@ -149,20 +149,17 @@ impl Cpu {
 
 impl Component for Cpu {
   fn update(&mut self, action: Action) -> Result<Option<Action>> {
-    match action {
-      Action::DataUpdate(data) => {
-        let data = *data;
-        let cpu_data = data.cpu;
+    if let Action::DataUpdate(data) = action {
+      let data = *data;
+      let cpu_data = data.cpu;
 
-        match cpu_data {
-          Some(d) => {
-            log::info!("Received Action event with data: {:?}", d.len());
-            self.update_data_stats(d)
-          },
-          None => todo!(),
-        }
-      },
-      _ => {},
+      match cpu_data {
+        Some(d) => {
+          log::info!("Received Action event with data: {:?}", d.len());
+          self.update_data_stats(d)
+        },
+        None => todo!(),
+      }
     }
     Ok(None)
   }

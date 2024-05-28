@@ -26,21 +26,21 @@ impl Default for SysinfoSource {
   }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct DataCollected {
   pub cpu: Option<CpuDataCollection>,
-}
-
-impl Default for DataCollected {
-  fn default() -> Self {
-    DataCollected { cpu: None }
-  }
 }
 
 #[derive(Debug)]
 pub struct DataCollector {
   pub data: DataCollected,
   sys: SysinfoSource,
+}
+
+impl Default for DataCollector {
+  fn default() -> Self {
+    Self::new()
+  }
 }
 
 impl DataCollector {

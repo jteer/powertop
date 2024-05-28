@@ -27,8 +27,7 @@ pub fn get_cpu_info(system: &System) -> Result<CpuDataCollection> {
   let cpu_info: Vec<CpuData> = system
     .cpus()
     .iter()
-    .enumerate()
-    .map(|(_i, cpu)| {
+    .map(|cpu| {
       CpuData {
         cpu_usage: cpu.cpu_usage() as f64,
         cpu_name: cpu.name().to_owned(),
@@ -38,5 +37,5 @@ pub fn get_cpu_info(system: &System) -> Result<CpuDataCollection> {
     })
     .collect();
 
-  Ok(Vec::from(cpu_info))
+  Ok(cpu_info)
 }
