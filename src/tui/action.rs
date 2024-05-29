@@ -6,7 +6,10 @@ use serde::{
 };
 use strum::Display;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Display, Deserialize)]
+use crate::data_services::data_collector::DataCollected;
+
+// #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Display)]
+#[derive(Debug, Clone, PartialEq, Serialize, Display, Deserialize)]
 pub enum Action {
   Tick,
   Render,
@@ -17,4 +20,5 @@ pub enum Action {
   Refresh,
   Error(String),
   Help,
+  DataUpdate(Box<DataCollected>),
 }

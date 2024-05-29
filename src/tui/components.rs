@@ -3,12 +3,10 @@ use crossterm::event::{KeyEvent, MouseEvent};
 use ratatui::layout::Rect;
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::{
-  action::Action,
-  config::Config,
-  tui::{Event, Frame},
-};
+use super::ui::{Event, Frame};
+use crate::{configuration::app_configuration::Config, tui::action::Action};
 
+pub mod cpu;
 pub mod fps;
 pub mod home;
 

@@ -1,15 +1,21 @@
+use std::sync::Arc;
+
 use color_eyre::eyre::Result;
 use crossterm::event::KeyEvent;
 use ratatui::prelude::Rect;
 use serde::{Deserialize, Serialize};
+use sysinfo::System;
 use tokio::sync::mpsc;
 
 use crate::{
-  action::Action,
-  components::{fps::FpsCounter, home::Home, Component},
-  config::Config,
-  mode::Mode,
-  tui,
+  configuration::app_configuration::Config,
+  tui::{
+    self,
+    action::Action,
+    components::{cpu::Cpu, fps::FpsCounter, home::Home, Component},
+    mode::Mode,
+    ui::{Event, Tui},
+  },
 };
 
 pub struct App {
@@ -27,12 +33,14 @@ impl App {
   pub fn new(tick_rate: f64, frame_rate: f64) -> Result<Self> {
     let home = Home::new();
     let fps = FpsCounter::default();
+    let cpu = Cpu::new();
+
     let config = Config::new()?;
     let mode = Mode::Home;
-    Ok(Self {
+    Ok(App {
       tick_rate,
       frame_rate,
-      components: vec![Box::new(home), Box::new(fps)],
+      components: vec![Box::new(cpu)],
       should_quit: false,
       should_suspend: false,
       config,
@@ -44,7 +52,7 @@ impl App {
   pub async fn run(&mut self) -> Result<()> {
     let (action_tx, mut action_rx) = mpsc::unbounded_channel();
 
-    let mut tui = tui::Tui::new()?.tick_rate(self.tick_rate).frame_rate(self.frame_rate);
+    let mut tui = Tui::new()?.tick_rate(self.tick_rate).frame_rate(self.frame_rate);
     // tui.mouse(true);
     tui.enter()?;
 
@@ -63,11 +71,11 @@ impl App {
     loop {
       if let Some(e) = tui.next().await {
         match e {
-          tui::Event::Quit => action_tx.send(Action::Quit)?,
-          tui::Event::Tick => action_tx.send(Action::Tick)?,
-          tui::Event::Render => action_tx.send(Action::Render)?,
-          tui::Event::Resize(x, y) => action_tx.send(Action::Resize(x, y))?,
-          tui::Event::Key(key) => {
+          Event::Quit => action_tx.send(Action::Quit)?,
+          Event::Tick => action_tx.send(Action::Tick)?,
+          Event::Render => action_tx.send(Action::Render)?,
+          Event::Resize(x, y) => action_tx.send(Action::Resize(x, y))?,
+          Event::Key(key) => {
             if let Some(keymap) = self.config.keybindings.get(&self.mode) {
               if let Some(action) = keymap.get(&vec![key]) {
                 log::info!("Got action: {action:?}");
@@ -85,6 +93,7 @@ impl App {
               }
             };
           },
+          Event::DataUpdate(ref data) => action_tx.send(Action::DataUpdate(data.clone()))?,
           _ => {},
         }
         for component in self.components.iter_mut() {
@@ -126,6 +135,8 @@ impl App {
               }
             })?;
           },
+          // Since we do not need to currently do anything extra with the data we can let the loop below handle sending the action to each component.
+          // Action::DataUpdate(boxed_data) => {},
           _ => {},
         }
         for component in self.components.iter_mut() {
@@ -137,7 +148,7 @@ impl App {
       if self.should_suspend {
         tui.suspend()?;
         action_tx.send(Action::Resume)?;
-        tui = tui::Tui::new()?.tick_rate(self.tick_rate).frame_rate(self.frame_rate);
+        tui = Tui::new()?.tick_rate(self.tick_rate).frame_rate(self.frame_rate);
         // tui.mouse(true);
         tui.enter()?;
       } else if self.should_quit {

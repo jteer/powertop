@@ -3,7 +3,7 @@ use std::{
   time::Duration,
 };
 
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{eyre, Result};
 use crossterm::{
   cursor,
   event::{
@@ -21,13 +21,15 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 
+use crate::data_services::data_collector::{DataCollected, DataCollector, SysinfoSource};
+
 pub type IO = std::io::Stdout;
 pub fn io() -> IO {
   std::io::stdout()
 }
 pub type Frame<'a> = ratatui::Frame<'a>;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
 pub enum Event {
   Init,
   Quit,
@@ -41,11 +43,23 @@ pub enum Event {
   Key(KeyEvent),
   Mouse(MouseEvent),
   Resize(u16, u16),
+  DataUpdate(Box<DataCollected>),
 }
+
+/// Interval to sleep between task status checks.
+const SLEEP_INTERVAL: Duration = Duration::from_millis(1);
+
+/// Maximum number of retries for checking task status.
+const MAX_RETRIES: usize = 10;
+
+/// Interval to sleep between data collection task updates.
+const DATA_COLLECTION_SLEEP_INTERVAL: Duration = Duration::from_millis(250);
 
 pub struct Tui {
   pub terminal: ratatui::Terminal<Backend<IO>>,
   pub task: JoinHandle<()>,
+  pub data_collection_task: JoinHandle<()>,
+
   pub cancellation_token: CancellationToken,
   pub event_rx: UnboundedReceiver<Event>,
   pub event_tx: UnboundedSender<Event>,
@@ -63,9 +77,21 @@ impl Tui {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
     let cancellation_token = CancellationToken::new();
     let task = tokio::spawn(async {});
+    let data_collection_task = tokio::spawn(async {});
     let mouse = false;
     let paste = false;
-    Ok(Self { terminal, task, cancellation_token, event_rx, event_tx, frame_rate, tick_rate, mouse, paste })
+    Ok(Self {
+      terminal,
+      task,
+      data_collection_task,
+      cancellation_token,
+      event_rx,
+      event_tx,
+      frame_rate,
+      tick_rate,
+      mouse,
+      paste,
+    })
   }
 
   pub fn tick_rate(mut self, tick_rate: f64) -> Self {
@@ -89,10 +115,19 @@ impl Tui {
   }
 
   pub fn start(&mut self) {
-    let tick_delay = std::time::Duration::from_secs_f64(1.0 / self.tick_rate);
-    let render_delay = std::time::Duration::from_secs_f64(1.0 / self.frame_rate);
     self.cancel();
     self.cancellation_token = CancellationToken::new();
+
+    // Spawn a task for data collection
+    self.spawn_data_collection_task();
+
+    // Spawn a task for the main(input) event loop
+    self.spawn_input_event_loop_task();
+  }
+
+  fn spawn_input_event_loop_task(&mut self) {
+    let tick_delay = std::time::Duration::from_secs_f64(1.0 / self.tick_rate);
+    let render_delay = std::time::Duration::from_secs_f64(1.0 / self.frame_rate);
     let _cancellation_token = self.cancellation_token.clone();
     let _event_tx = self.event_tx.clone();
     self.task = tokio::spawn(async move {
@@ -104,6 +139,7 @@ impl Tui {
         let tick_delay = tick_interval.tick();
         let render_delay = render_interval.tick();
         let crossterm_event = reader.next().fuse();
+
         tokio::select! {
           _ = _cancellation_token.cancelled() => {
             break;
@@ -151,21 +187,81 @@ impl Tui {
     });
   }
 
+  fn spawn_data_collection_task(&mut self) {
+    let data_event_tx = self.event_tx.clone();
+    let data_collection_token = self.cancellation_token.clone();
+    self.data_collection_task = tokio::spawn(async move {
+      let mut data_state: DataCollector = DataCollector::new();
+
+      loop {
+        // Check for cancellation
+        if data_collection_token.is_cancelled() {
+          break;
+        }
+
+        data_state.update_data();
+        let event = Event::DataUpdate(Box::from(data_state.data));
+
+        data_state.data = DataCollected::default();
+        if data_event_tx.send(event).is_err() {
+          break;
+        }
+
+        // Add a delay to prevent CPU monopolization
+        // TODO Make delay configurable
+        tokio::time::sleep(DATA_COLLECTION_SLEEP_INTERVAL).await;
+      }
+    });
+  }
+
+  /// Stops the TUI by canceling and aborting ongoing tasks.
+  ///
+  /// This function will first cancel the main and data collection tasks,
+  /// then attempt to abort them if they do not finish within a reasonable time.
+  ///
+  /// # Errors
+  ///
+  /// Returns an error if either task fails to abort within the specified timeout.
   pub fn stop(&self) -> Result<()> {
     self.cancel();
-    let mut counter = 0;
-    while !self.task.is_finished() {
-      std::thread::sleep(Duration::from_millis(1));
-      counter += 1;
-      if counter > 50 {
-        self.task.abort();
-      }
-      if counter > 100 {
-        log::error!("Failed to abort task in 100 milliseconds for unknown reason");
-        break;
-      }
-    }
+
+    // Abort the main task
+    self.abort_task(&self.task, MAX_RETRIES)?;
+
+    // Abort the data collection task
+    self.abort_task(&self.data_collection_task, MAX_RETRIES)?;
+
     Ok(())
+  }
+
+  /// Attempts to abort a given task, waiting for it to finish.
+  ///
+  /// This function will check if the task is finished, and if not, will
+  /// attempt to abort it after a certain number of retries. It will wait
+  /// for a short interval between each check.
+  ///
+  /// # Parameters
+  ///
+  /// - `task`: The task to be aborted.
+  /// - `max_retries`: The maximum number of retries before forcing the task to abort.
+  ///
+  /// # Errors
+  ///
+  /// Returns an error if the task fails to abort within the specified number of retries.
+  fn abort_task(&self, task: &JoinHandle<()>, max_retries: usize) -> Result<()> {
+    for attempt in 0..max_retries {
+      if task.is_finished() {
+        return Ok(());
+      }
+
+      if attempt == max_retries / 2 {
+        task.abort();
+      }
+
+      std::thread::sleep(SLEEP_INTERVAL);
+    }
+
+    Err(eyre!("Failed to abort task within {} milliseconds", max_retries * SLEEP_INTERVAL.as_millis() as usize))
   }
 
   pub fn enter(&mut self) -> Result<()> {
