@@ -167,8 +167,7 @@ impl Cpu {
 impl Component for Cpu {
   fn update(&mut self, action: Action) -> Result<Option<Action>> {
     if let Action::DataUpdate(data) = action {
-      let cpu_data = (*data).cpu;
-      match cpu_data {
+      match data.cpu {
         Some(d) => self.update_data_stats(d),
         None => {
           log::debug!("Received Action with no data.")
