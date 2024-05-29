@@ -1,6 +1,7 @@
 use std::{
   cmp,
   collections::{HashMap, VecDeque},
+  default,
   ops::{Add, Sub},
   sync::Arc,
   time::Instant,
@@ -31,12 +32,20 @@ pub struct CpuStats {
   pub points: usize,
 }
 
+#[derive(Debug, Clone, PartialEq, Default)]
+pub enum CpuGraphType {
+  #[default]
+  LineChart,
+  BarChart,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Cpu {
   app_start_time: Instant,
   render_start_time: Instant,
   collected_data: CpuDataCollection,
   cpu_stats: CpuStats,
+  graph_type: CpuGraphType,
 }
 
 impl Default for Cpu {
@@ -52,6 +61,7 @@ impl Cpu {
       render_start_time: Instant::now(),
       collected_data: [].to_vec(),
       cpu_stats: CpuStats { max_usage: 0.0, cpu_groups: HashMap::new(), min_x: 0.0, max_x: 0.0, points: 0 },
+      graph_type: CpuGraphType::BarChart,
     }
   }
 
@@ -92,7 +102,22 @@ impl Cpu {
     // self.collected_data.append(&mut new_data);
   }
 
-  fn get_datasets(&mut self) -> Vec<Dataset> {
+  fn get_bar_chart_datasets(&mut self) -> Vec<Bar> {
+    self
+      .cpu_stats
+      .cpu_groups
+      .iter()
+      .sorted_by_key(|x| x.0)
+      .map(|x| -> Bar {
+        match x.1.back() {
+          Some(d) => Bar::default().label(format!("CPU{:<4}", x.0.to_string()).into()).value(d.1 as u64),
+          None => todo!("handle failed to map cpu value to bar value"),
+        }
+      })
+      .collect_vec()
+  }
+
+  fn get_line_chart_datasets(&mut self) -> Vec<Dataset> {
     // TODO: Add more colors so that each cpu consistently keeps the same color
     let colors = [
       Style::default().cyan(),
@@ -164,27 +189,57 @@ impl Component for Cpu {
 
     let rect = rects[0];
 
-    let x_lower_bound =
-      if self.cpu_stats.points >= MAX_DATA_POINTS { self.cpu_stats.points - MAX_DATA_POINTS } else { 0 };
-    let x_axis = Axis::default()
-      .style(Style::default().white())
-      .bounds([x_lower_bound as f64, self.cpu_stats.points as f64])
-      .labels(vec!["0.0".into(), MAX_DATA_POINTS.to_string().into()]);
+    // TODO: CPU Ordering on both graphs
+    // TODO: Handle Data Cleaning
+    // TODO: Each of these charts could be moved into its own "Widget" module as an abstraction over ratatui so it can be easy to implement new charts
+    // TODO: The data for each of these could be abstracted into some
+    match self.graph_type {
+      // TODO: Handle correctly updating chart when data points exceed MAX_DATA_POINTS
+      CpuGraphType::LineChart => {
+        let x_lower_bound =
+          if self.cpu_stats.points >= MAX_DATA_POINTS { self.cpu_stats.points - MAX_DATA_POINTS } else { 0 };
+        let x_axis = Axis::default()
+          .style(Style::default().white())
+          .bounds([x_lower_bound as f64, self.cpu_stats.points as f64])
+          .labels(vec!["0.0".into(), MAX_DATA_POINTS.to_string().into()]);
 
-    // usage
-    let y_axis =
-      Axis::default().style(Style::default().white()).bounds([0.0, 100.0]).labels(vec!["0.0".into(), "100.0".into()]);
+        // usage
+        let y_axis = Axis::default()
+          .style(Style::default().white())
+          .bounds([0.0, 100.0])
+          .labels(vec!["0.0".into(), "100.0".into()]);
 
-    let datasets = self.get_datasets();
+        let datasets = self.get_line_chart_datasets();
 
-    let chart = Chart::new(datasets)
-      .block(Block::new().title("CPU").border_style(Style::new().blue()))
-      .x_axis(x_axis)
-      .y_axis(y_axis)
-      .hidden_legend_constraints((Constraint::Ratio(1, 2), Constraint::Ratio(1, 2)))
-      .legend_position(Some(LegendPosition::TopRight));
+        let chart = Chart::new(datasets)
+          .block(Block::bordered().title("CPU"))
+          .x_axis(x_axis)
+          .y_axis(y_axis)
+          .hidden_legend_constraints((Constraint::Ratio(1, 2), Constraint::Ratio(1, 2)))
+          .legend_position(Some(LegendPosition::TopRight));
 
-    frame.render_widget(chart, area);
+        frame.render_widget(chart, area);
+      },
+      CpuGraphType::BarChart => {
+        // TODO: For each bar draw the previous value + new value to show change?
+        let dataset = self.get_bar_chart_datasets();
+        let chart = BarChart::default()
+          .block(Block::bordered().title("CPU"))
+          .bar_width(6)
+          .bar_gap(5)
+          .group_gap(5)
+          .bar_style(Style::new().blue().on_black())
+          .value_style(Style::new().white().bold())
+          .label_style(Style::new().black())
+          // TODO impl Into
+          // .data(self.cpu_stats.cpu_groups)
+          .data(BarGroup::default().bars(&dataset))
+          .max(100);
+
+        frame.render_widget(chart, area);
+      },
+    };
+
     Ok(())
   }
 }

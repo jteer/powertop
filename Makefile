@@ -11,3 +11,6 @@ build: clippy test fmt
 
 run_debug:
 	POWERTOP_CONFIG=`pwd`/.config POWERTOP_DATA=`pwd`/.data POWERTOP_LOG_LEVEL=debug cargo run
+
+get_todos:
+	rustc ./scripts/collect_todos.rs --out-dir ./scripts && ./scripts/collect_todos
