@@ -6,7 +6,7 @@ use serde::{
 };
 use strum::Display;
 
-use crate::data_services::DataCollected;
+use crate::data_services::data_collector::DataCollected;
 
 // #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Display)]
 #[derive(Debug, Clone, PartialEq, Serialize, Display, Deserialize)]

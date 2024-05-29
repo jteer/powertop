@@ -1,6 +1,13 @@
-use std::{cmp, collections::HashMap, ops::Add, sync::Arc, time::Instant};
+use std::{
+  cmp,
+  collections::{HashMap, VecDeque},
+  ops::{Add, Sub},
+  sync::Arc,
+  time::Instant,
+};
 
-use color_eyre::eyre::Result;
+use clap::builder::styling::AnsiColor;
+use color_eyre::{eyre::Result, owo_colors::OwoColorize};
 use itertools::Itertools;
 use libc::group;
 use ratatui::{prelude::*, widgets::*};
@@ -12,17 +19,15 @@ use crate::{
   tui::action::Action,
 };
 
-const MAX_DATA_POINTS: usize = 20;
+const MAX_DATA_POINTS: usize = 50;
 
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct CpuStats {
   pub max_usage: f64,
   pub min_x: f64,
   pub max_x: f64,
-  pub min_y: f64,
-  pub max_y: f64,
   // Map of Cpu Usage (Cpu_Name, (i, usage))
-  pub cpu_groups: HashMap<String, Vec<(f64, f64)>>,
+  pub cpu_groups: HashMap<String, VecDeque<(f64, f64)>>,
   pub points: usize,
 }
 
@@ -46,66 +51,49 @@ impl Cpu {
       app_start_time: Instant::now(),
       render_start_time: Instant::now(),
       collected_data: [].to_vec(),
-      cpu_stats: CpuStats {
-        max_usage: 0.0,
-        cpu_groups: HashMap::new(),
-        min_x: 0.0,
-        max_x: 0.0,
-        min_y: 0.0,
-        max_y: 0.0,
-        points: 0,
-      },
+      cpu_stats: CpuStats { max_usage: 0.0, cpu_groups: HashMap::new(), min_x: 0.0, max_x: 0.0, points: 0 },
     }
   }
 
   fn update_data_stats(&mut self, new_data: Vec<CpuData>) {
-    log::info!("Updating with new data of len: {:?}", new_data.len());
+    log::debug!("Updating CPU Component with new data of len: {:?}", new_data.len());
 
-    let mut min_x = f64::INFINITY;
     let mut max_x = f64::NEG_INFINITY;
-    let mut min_y = f64::INFINITY;
-    let mut max_y = f64::NEG_INFINITY;
     let mut max_from_new_data: f64 = 0.0;
 
-    // TODO: This clears the whole graph, we should instead use something like VecDeque so we can pop values from the left
-    // Which should look like the graph is moving?
-    if self.cpu_stats.points + 1 >= MAX_DATA_POINTS {
-      self.cpu_stats = CpuStats { max_x: self.cpu_stats.max_x, max_y: self.cpu_stats.max_y, ..Default::default() }
-    }
+    // if self.cpu_stats.points + 1 >= MAX_DATA_POINTS {
+    //   self.cpu_stats = CpuStats { max_x: self.cpu_stats.max_x, max_y: self.cpu_stats.max_y, ..Default::default() }
+    // }
 
     self.cpu_stats.points += 1;
 
+    max_x = max_x.max(self.cpu_stats.points as f64);
+
+    // Should contain one new item for each cpu
     for (i, data) in new_data.iter().enumerate() {
       max_from_new_data = max_from_new_data.max(data.cpu_usage);
 
-      min_x = min_x.min((i + 1) as f64);
-      max_x = max_x.max((i + 1) as f64);
-
-      min_y = min_y.min(data.cpu_usage);
-      max_y = max_y.max(data.cpu_usage);
-
-      // TODO Convert to use Time as x
-      // let time_from_start: f64 = (self.render_start_time.duration_since(self.app_start_time).as_millis() as f64).floor();
-
       if self.cpu_stats.cpu_groups.contains_key(&data.cpu_name) {
         if let Some(existing_entry) = self.cpu_stats.cpu_groups.get_mut(&data.cpu_name) {
-          existing_entry.append(&mut vec![((existing_entry.len() + 1) as f64, data.cpu_usage)]);
+          // TODO Currently this does not clear from the deque
+          let x_pos = self.cpu_stats.points;
+          existing_entry.push_back((x_pos as f64, data.cpu_usage));
         }
       } else {
-        self.cpu_stats.cpu_groups.insert(data.cpu_name.clone(), vec![(1.0_f64, data.cpu_usage)]);
+        let mut deque = VecDeque::with_capacity(MAX_DATA_POINTS);
+        deque.push_back((0.0_f64, data.cpu_usage));
+        self.cpu_stats.cpu_groups.insert(data.cpu_name.clone(), deque);
       }
     }
 
     self.cpu_stats.max_usage = max_from_new_data.max(self.cpu_stats.max_usage);
-    self.cpu_stats.min_x = min_x.min(self.cpu_stats.min_x);
     self.cpu_stats.max_x = max_x.max(self.cpu_stats.max_x);
-    self.cpu_stats.min_y = min_y.min(self.cpu_stats.min_y);
-    self.cpu_stats.max_y = max_y.max(self.cpu_stats.max_y);
 
     // self.collected_data.append(&mut new_data);
   }
 
   fn get_datasets(&mut self) -> Vec<Dataset> {
+    // TODO: Add more colors so that each cpu consistently keeps the same color
     let colors = [
       Style::default().cyan(),
       Style::default().magenta(),
@@ -113,6 +101,9 @@ impl Cpu {
       Style::default().green(),
       Style::default().blue(),
       Style::default().red(),
+      Style::default().black(),
+      Style::default().gray(),
+      Style::default().dark_gray(),
     ];
 
     let mut color_iter = colors.iter().cycle();
@@ -121,6 +112,7 @@ impl Cpu {
       .cpu_stats
       .cpu_groups
       .iter()
+      .sorted_by_key(|x| x.0)
       .map(|x| {
         let color = color_iter.next().unwrap();
         Dataset::default()
@@ -128,7 +120,7 @@ impl Cpu {
           .marker(symbols::Marker::Dot)
           .graph_type(GraphType::Line)
           .style(*color)
-          .data(x.1)
+          .data(x.1.as_slices().0)
       })
       .collect_vec();
 
@@ -150,15 +142,12 @@ impl Cpu {
 impl Component for Cpu {
   fn update(&mut self, action: Action) -> Result<Option<Action>> {
     if let Action::DataUpdate(data) = action {
-      let data = *data;
-      let cpu_data = data.cpu;
-
+      let cpu_data = (*data).cpu;
       match cpu_data {
-        Some(d) => {
-          log::info!("Received Action event with data: {:?}", d.len());
-          self.update_data_stats(d)
+        Some(d) => self.update_data_stats(d),
+        None => {
+          log::debug!("Received Action with no data.")
         },
-        None => todo!(),
       }
     }
     Ok(None)
@@ -175,24 +164,24 @@ impl Component for Cpu {
 
     let rect = rects[0];
 
+    let x_lower_bound =
+      if self.cpu_stats.points >= MAX_DATA_POINTS { self.cpu_stats.points - MAX_DATA_POINTS } else { 0 };
     let x_axis = Axis::default()
       .style(Style::default().white())
-      .bounds([0.0, MAX_DATA_POINTS as f64])
+      .bounds([x_lower_bound as f64, self.cpu_stats.points as f64])
       .labels(vec!["0.0".into(), MAX_DATA_POINTS.to_string().into()]);
 
-    // Create the Y axis and define its properties
-    let y_axis = Axis::default()
-      .style(Style::default().white())
-      .bounds([self.cpu_stats.min_y, self.cpu_stats.max_y])
-      .labels(vec!["0.0".into(), self.cpu_stats.max_y.round().to_string().into()]);
+    // usage
+    let y_axis =
+      Axis::default().style(Style::default().white()).bounds([0.0, 100.0]).labels(vec!["0.0".into(), "100.0".into()]);
 
     let datasets = self.get_datasets();
 
-    // Create the chart and link all the parts together
     let chart = Chart::new(datasets)
       .block(Block::new().title("CPU").border_style(Style::new().blue()))
       .x_axis(x_axis)
       .y_axis(y_axis)
+      .hidden_legend_constraints((Constraint::Ratio(1, 2), Constraint::Ratio(1, 2)))
       .legend_position(Some(LegendPosition::TopRight));
 
     frame.render_widget(chart, area);

@@ -3,7 +3,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use tokio::time::Instant;
 
-use self::cpu::{get_cpu_info, Cpu, CpuDataCollection};
+use super::cpu::{get_cpu_info, CpuDataCollection};
 
 // Generic Trait for collecting different data
 // pub trait DataCollector {
@@ -11,8 +11,6 @@ use self::cpu::{get_cpu_info, Cpu, CpuDataCollection};
 //   type Params;
 //   fn collect(&self, params: Self::Params) -> Self::Output;
 // }
-
-pub mod cpu;
 
 #[derive(Debug)]
 pub struct SysinfoSource {

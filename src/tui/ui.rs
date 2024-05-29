@@ -21,7 +21,7 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 
-use crate::data_services::{DataCollected, DataCollector, SysinfoSource};
+use crate::data_services::data_collector::{DataCollected, DataCollector, SysinfoSource};
 
 pub type IO = std::io::Stdout;
 pub fn io() -> IO {
