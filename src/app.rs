@@ -35,7 +35,7 @@ impl App {
     let cpu = Cpu::new();
     let process_table = ProcessTable::new();
     let disk_table = DiskTable::new();
-    
+
     let config = Config::new()?;
     let mode = Mode::Home;
     Ok(App {

@@ -47,7 +47,7 @@ impl ProcessData {
       Constraint::Length(6),  // Parent column minimum width
       Constraint::Length(12), // Name column minimum width
       Constraint::Length(12), // Status column minimum width
-      Constraint::Length(10),  // CPU Usage column minimum width
+      Constraint::Length(10), // CPU Usage column minimum width
     ]
   }
 }

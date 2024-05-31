@@ -4,8 +4,11 @@ clippy:
 test: 
 	cargo test
 
-fmt:
+fmt-check:
 	cargo fmt --all --check
+
+fmt:
+	cargo fmt --all -v
 
 cargo-build:
 	cargo build
