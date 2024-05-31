@@ -26,6 +26,8 @@ Yet another Cross-platform graphical process/system monitor for the terminal
             - [ ] Additional Process Fields
             - [ ] Sorting Columns
             - [ ] Scrollable
+        - [ ] Other Data
+            - [ ] [Disk Usage](https://docs.rs/sysinfo/0.30.12/sysinfo/struct.DiskUsage.html)
     - [ ] Disks
     - [ ] GPU / Temp
 - [ ] Internal

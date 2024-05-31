@@ -178,18 +178,11 @@ impl Component for Cpu {
   }
 
   fn draw(&mut self, frame: &mut Frame<'_>, area: Rect) -> Result<()> {
-    // let rects = Layout::default()
-    //   .direction(Direction::Vertical)
-    //   .constraints(vec![
-    //     Constraint::Length(1), // first row
-    //     Constraint::Min(0),
-    //   ])
-    //   .split(area);
     let rects = Layout::default()
       .direction(Direction::Vertical)
       .constraints(vec![
-        Constraint::Percentage(50), // Top half
-        Constraint::Percentage(50), // Bottom half
+        Constraint::Percentage(100), // Top row spans whole width
+        Constraint::Percentage(50),  // Bottom row split 50/50
       ])
       .split(area);
     let rect = rects[0];
