@@ -3,7 +3,10 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use tokio::time::Instant;
 
-use super::cpu::{get_cpu_info, CpuDataCollection};
+use super::{
+  cpu::{get_cpu_info, CpuDataCollection},
+  processes::{get_process_info, ProcessDataCollection},
+};
 
 // Generic Trait for collecting different data
 // pub trait DataCollector {
@@ -27,6 +30,7 @@ impl Default for SysinfoSource {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct DataCollected {
   pub cpu: Option<CpuDataCollection>,
+  pub processes: Option<ProcessDataCollection>,
 }
 
 #[derive(Debug)]
@@ -50,6 +54,7 @@ impl DataCollector {
     self.update_sysinfo();
 
     self.update_cpu();
+    self.update_process_info();
   }
 
   fn update_sysinfo(&mut self) {
@@ -58,12 +63,22 @@ impl DataCollector {
     // let refresh_start = Instant::now();
 
     self.sys.system.refresh_cpu();
+
+    self.sys.system.refresh_processes();
   }
 
   fn update_cpu(&mut self) {
     let cpu = get_cpu_info(&self.sys.system);
     match cpu {
       Ok(d) => self.data.cpu = Some(d),
+      Err(_) => todo!(),
+    }
+  }
+
+  fn update_process_info(&mut self) {
+    let process_data = get_process_info(&self.sys.system);
+    match process_data {
+      Ok(d) => self.data.processes = Some(d),
       Err(_) => todo!(),
     }
   }

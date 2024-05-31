@@ -53,7 +53,7 @@ const SLEEP_INTERVAL: Duration = Duration::from_millis(1);
 const MAX_RETRIES: usize = 10;
 
 /// Interval to sleep between data collection task updates.
-const DATA_COLLECTION_SLEEP_INTERVAL: Duration = Duration::from_millis(250);
+const DATA_COLLECTION_SLEEP_INTERVAL: Duration = Duration::from_millis(1000);
 
 pub struct Tui {
   pub terminal: ratatui::Terminal<Backend<IO>>,

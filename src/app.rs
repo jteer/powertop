@@ -12,7 +12,7 @@ use crate::{
   tui::{
     self,
     action::Action,
-    components::{cpu::Cpu, fps::FpsCounter, home::Home, Component},
+    components::{cpu::Cpu, fps::FpsCounter, home::Home, process_table::ProcessTable, Component},
     mode::Mode,
     ui::{Event, Tui},
   },
@@ -34,13 +34,13 @@ impl App {
     let home = Home::new();
     let fps = FpsCounter::default();
     let cpu = Cpu::new();
-
+    let process_table = ProcessTable::new();
     let config = Config::new()?;
     let mode = Mode::Home;
     Ok(App {
       tick_rate,
       frame_rate,
-      components: vec![Box::new(cpu)],
+      components: vec![Box::new(cpu), Box::new(process_table)],
       should_quit: false,
       should_suspend: false,
       config,
