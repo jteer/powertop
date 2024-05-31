@@ -16,17 +16,23 @@ Yet another Cross-platform graphical process/system monitor for the terminal
         - [x] Initial Data Collection
         - [ ] Improved Data Cleanup
         - [ ] Improved Component Visual
-    - [ ] Network
-    - [ ] Memory
     - [ ] Processes
         - [x] Initial Component
         - [x] Initial Data Collection
-        - [ ] Improved Data Cleanup
         - [ ] Improved Component Visual
             - [ ] Additional Process Fields
             - [ ] Sorting Columns
             - [ ] Scrollable
+        - [ ] Other Data
+            - [ ] [Disk Usage](https://docs.rs/sysinfo/0.30.12/sysinfo/struct.DiskUsage.html)
     - [ ] Disks
+        - [x] Initial Component
+        - [x] Initial Data Collection
+        - [ ] Improved Component Visual
+            - [ ] Display space units
+            - [ ] Separate Display as pie chart similar to [gtop disk display](https://github.com/aksakalli/gtop/blob/master/README.md)
     - [ ] GPU / Temp
+    - [ ] Network
+    - [ ] Memory
 - [ ] Internal
     - [ ] Additional Logging / Tracing 

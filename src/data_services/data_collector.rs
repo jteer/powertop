@@ -5,6 +5,7 @@ use tokio::time::Instant;
 
 use super::{
   cpu::{get_cpu_info, CpuDataCollection},
+  disks::{get_disk_info, DiskDataCollection},
   processes::{get_process_info, ProcessDataCollection},
 };
 
@@ -18,12 +19,13 @@ use super::{
 #[derive(Debug)]
 pub struct SysinfoSource {
   pub(crate) system: sysinfo::System,
+  pub(crate) disks: sysinfo::Disks,
 }
 
 impl Default for SysinfoSource {
   fn default() -> Self {
     use sysinfo::*;
-    Self { system: System::new_with_specifics(RefreshKind::new()) }
+    Self { system: System::new_with_specifics(RefreshKind::new()), disks: Disks::new_with_refreshed_list() }
   }
 }
 
@@ -31,6 +33,7 @@ impl Default for SysinfoSource {
 pub struct DataCollected {
   pub cpu: Option<CpuDataCollection>,
   pub processes: Option<ProcessDataCollection>,
+  pub disk: Option<DiskDataCollection>,
 }
 
 #[derive(Debug)]
@@ -51,13 +54,14 @@ impl DataCollector {
   }
 
   pub fn update_data(&mut self) {
-    self.update_sysinfo();
+    self.refresh_sysinfo();
 
     self.update_cpu();
     self.update_process_info();
+    self.update_disk_info();
   }
 
-  fn update_sysinfo(&mut self) {
+  fn refresh_sysinfo(&mut self) {
     // TODO Make configurable / Refresh only every 60 sec
     // const REFRESH_TIME = Duration::from_secs(60);
     // let refresh_start = Instant::now();
@@ -65,6 +69,9 @@ impl DataCollector {
     self.sys.system.refresh_cpu();
 
     self.sys.system.refresh_processes();
+
+    self.sys.disks.refresh_list();
+    self.sys.disks.refresh();
   }
 
   fn update_cpu(&mut self) {
@@ -79,6 +86,14 @@ impl DataCollector {
     let process_data = get_process_info(&self.sys.system);
     match process_data {
       Ok(d) => self.data.processes = Some(d),
+      Err(_) => todo!(),
+    }
+  }
+
+  fn update_disk_info(&mut self) {
+    let disk_info = get_disk_info(&self.sys.disks);
+    match disk_info {
+      Ok(d) => self.data.disk = Some(d),
       Err(_) => todo!(),
     }
   }

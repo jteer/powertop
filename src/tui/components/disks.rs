@@ -8,70 +8,70 @@ use ratatui::{prelude::*, widgets::*};
 
 use super::Component;
 use crate::{
-  data_services::processes::{ProcessData, ProcessDataCollection},
+  data_services::disks::{DiskData, DiskDataCollection},
   tui::{action::Action, ui::Frame},
 };
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct ProcessTable {
+pub struct DiskTable {
   app_start_time: Instant,
   render_start_time: Instant,
-  collected_data: ProcessDataCollection,
+  collected_data: DiskDataCollection,
 }
 
-impl From<ProcessData> for Row<'static> {
-  fn from(val: ProcessData) -> Self {
+impl From<DiskData> for Row<'static> {
+  fn from(val: DiskData) -> Self {
     Row::new(vec![
-      val.pid.to_string(),
-      match val.parent {
-        Some(p) => p.to_string(),
-        None => "-".to_string(),
-      },
       val.name,
-      val.status,
-      format!("{:.3}", val.cpu_usage),
+      val.kind,
+      val.file_system,
+      val.total_space.to_string(),
+      val.available_space.to_string(),
+      val.is_removable.to_string(),
+      val.mount_path,
     ])
   }
 }
 
-impl ProcessData {
+impl DiskData {
   // TODO: Better way to create headers from struct
   fn headers() -> Vec<&'static str> {
-    vec!["PID", "Parent", "Name", "Status", "CPU Usage"]
+    vec!["Name", "Kind", "File System", "Total (bytes)", "Available (bytes)", "IsRemovable", "Mount"]
   }
 
   fn column_widths() -> Vec<Constraint> {
-    // TODO: Should we use Constraint::Min() ?
     vec![
-      Constraint::Length(4),  // PID column minimum width
-      Constraint::Length(6),  // Parent column minimum width
-      Constraint::Length(12), // Name column minimum width
-      Constraint::Length(12), // Status column minimum width
-      Constraint::Length(10), // CPU Usage column minimum width
+      Constraint::Length(12),
+      Constraint::Length(6),
+      Constraint::Length(12),
+      Constraint::Length(12),
+      Constraint::Length(12),
+      Constraint::Length(6),
+      Constraint::Length(12),
     ]
   }
 }
 
-impl Default for ProcessTable {
+impl Default for DiskTable {
   fn default() -> Self {
     Self::new()
   }
 }
 
-impl ProcessTable {
+impl DiskTable {
   pub fn new() -> Self {
     Self { app_start_time: Instant::now(), render_start_time: Instant::now(), collected_data: [].to_vec() }
   }
 
-  fn update_data_stats(&mut self, new_data: ProcessDataCollection) {
+  fn update_data_stats(&mut self, new_data: DiskDataCollection) {
     self.collected_data = new_data;
   }
 }
 
-impl Component for ProcessTable {
+impl Component for DiskTable {
   fn update(&mut self, action: Action) -> Result<Option<Action>> {
     if let Action::DataUpdate(data) = action {
-      match data.processes {
+      match data.disk {
         Some(d) => self.update_data_stats(d),
         None => {
           log::debug!("Received Action with no data.")
@@ -82,10 +82,6 @@ impl Component for ProcessTable {
   }
 
   fn draw(&mut self, frame: &mut Frame<'_>, area: Rect) -> Result<()> {
-    // TODO: DRY for Layout
-    // Option 1: Each component creates Layout the same way and each uses a different rect (rects[0], ...)
-    // Option 2: App creates Layout and passes rects down to components, each component knows which rect to use
-    // Option 3: App creates Layout and passes a single rect down that the component uses
     let rects = Layout::default()
       .direction(Direction::Vertical)
       .constraints(vec![
@@ -102,20 +98,19 @@ impl Component for ProcessTable {
       ])
       .split(rects[1]);
 
-    // TODO: Do we need to clone?
     let rows: Vec<Row> = self.collected_data.clone().into_iter().map(Into::into).collect();
-    let col_widths = ProcessData::column_widths();
-    let header = Row::new(ProcessData::headers()).style(Style::default().bold().underlined()).bottom_margin(1);
+    let col_widths = DiskData::column_widths();
+    let header = Row::new(DiskData::headers()).style(Style::default().bold().underlined()).bottom_margin(1);
 
     let table = Table::new(rows, col_widths)
-      .block(Block::bordered().title("Processes"))
+      .block(Block::bordered().title("Disk"))
       .column_spacing(3)
       .style(Style::default().white())
       .header(header)
       .highlight_style(Style::default().reversed())
       .highlight_symbol(">>");
 
-    frame.render_widget(table, bottom_row_rects[0]);
+    frame.render_widget(table, bottom_row_rects[1]);
 
     Ok(())
   }

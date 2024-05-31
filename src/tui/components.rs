@@ -7,6 +7,7 @@ use super::ui::{Event, Frame};
 use crate::{configuration::app_configuration::Config, tui::action::Action};
 
 pub mod cpu;
+pub mod disks;
 pub mod fps;
 pub mod home;
 pub mod process_table;
