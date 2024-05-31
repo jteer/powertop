@@ -62,7 +62,8 @@ fn extract_todos(path: &Path) -> io::Result<Vec<(String, String)>> {
     Ok(todos)
 }
 
-fn write_todos_to_file(output_file: &Path, todos: &[(String, String)]) -> io::Result<()> {    let mut file = File::create(output_file)?;
+fn write_todos_to_file(output_file: &Path, todos: &[(String, String)]) -> io::Result<()> {    
+    let mut file = File::create(output_file)?;
     writeln!(file, "TODOs in project:")?;
 
     for (todo, path) in todos {

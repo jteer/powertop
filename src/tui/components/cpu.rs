@@ -178,14 +178,20 @@ impl Component for Cpu {
   }
 
   fn draw(&mut self, frame: &mut Frame<'_>, area: Rect) -> Result<()> {
+    // let rects = Layout::default()
+    //   .direction(Direction::Vertical)
+    //   .constraints(vec![
+    //     Constraint::Length(1), // first row
+    //     Constraint::Min(0),
+    //   ])
+    //   .split(area);
     let rects = Layout::default()
       .direction(Direction::Vertical)
       .constraints(vec![
-        Constraint::Length(1), // first row
-        Constraint::Min(0),
+        Constraint::Percentage(50), // Top half
+        Constraint::Percentage(50), // Bottom half
       ])
       .split(area);
-
     let rect = rects[0];
 
     // TODO: CPU Ordering on both graphs
@@ -217,7 +223,7 @@ impl Component for Cpu {
           .hidden_legend_constraints((Constraint::Ratio(1, 2), Constraint::Ratio(1, 2)))
           .legend_position(Some(LegendPosition::TopRight));
 
-        frame.render_widget(chart, area);
+        frame.render_widget(chart, rect);
       },
       CpuGraphType::BarChart => {
         // TODO: For each bar draw the previous value + new value to show change?
@@ -235,7 +241,7 @@ impl Component for Cpu {
           .data(BarGroup::default().bars(&dataset))
           .max(100);
 
-        frame.render_widget(chart, area);
+        frame.render_widget(chart, rect);
       },
     };
 

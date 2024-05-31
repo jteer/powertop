@@ -21,9 +21,6 @@ pub struct Cpu {
 }
 
 pub fn get_cpu_info(system: &System) -> Result<CpuDataCollection> {
-  // TODO Move refresh higher in workflow
-  // system.refresh_cpu();
-
   let cpu_info: Vec<CpuData> = system
     .cpus()
     .iter()
