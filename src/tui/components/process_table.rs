@@ -97,8 +97,9 @@ impl Component for ProcessTable {
     let bottom_row_rects = Layout::default()
       .direction(Direction::Horizontal)
       .constraints(vec![
-        Constraint::Percentage(50), // Left half
-        Constraint::Percentage(50), // Right half
+        Constraint::Percentage(33), // Left half
+        Constraint::Percentage(33), // Right half
+        Constraint::Percentage(33), // Right half
       ])
       .split(rects[1]);
 

@@ -12,7 +12,10 @@ use crate::{
   tui::{
     self,
     action::Action,
-    components::{cpu::Cpu, disks::DiskTable, fps::FpsCounter, home::Home, process_table::ProcessTable, Component},
+    components::{
+      cpu::Cpu, disks::DiskTable, fps::FpsCounter, home::Home, network::NetworkComponent, process_table::ProcessTable,
+      Component,
+    },
     mode::Mode,
     ui::{Event, Tui},
   },
@@ -35,13 +38,14 @@ impl App {
     let cpu = Cpu::new();
     let process_table = ProcessTable::new();
     let disk_table = DiskTable::new();
+    let network_component = NetworkComponent::new();
 
     let config = Config::new()?;
     let mode = Mode::Home;
     Ok(App {
       tick_rate,
       frame_rate,
-      components: vec![Box::new(cpu), Box::new(process_table), Box::new(disk_table)],
+      components: vec![Box::new(cpu), Box::new(process_table), Box::new(disk_table), Box::new(network_component)],
       should_quit: false,
       should_suspend: false,
       config,
@@ -106,7 +110,7 @@ impl App {
 
       while let Ok(action) = action_rx.try_recv() {
         if action != Action::Tick && action != Action::Render {
-          log::debug!("{action:?}");
+          // log::debug!("{action:?}");
         }
         match action {
           Action::Tick => {
