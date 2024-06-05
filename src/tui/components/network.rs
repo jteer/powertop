@@ -119,7 +119,7 @@ impl Component for NetworkComponent {
     let rx_title = format!("Received - {} bytes", self.network_view_model.total_received);
     let rx_spark = Sparkline::default()
       .block(Block::new().title(rx_title))
-      .data(&continuous_rx_values)
+      .data(continuous_rx_values)
       .max(max_spark_value)
       .direction(RenderDirection::LeftToRight)
       .style(Style::default().red().black());
@@ -128,7 +128,7 @@ impl Component for NetworkComponent {
     let tx_title = format!("Transmitted - {} bytes", self.network_view_model.total_transmitted);
     let tx_spark = Sparkline::default()
       .block(Block::new().title(tx_title))
-      .data(&continuous_tx_values)
+      .data(continuous_tx_values)
       .max(max_spark_value)
       .direction(RenderDirection::LeftToRight)
       .style(Style::default().red().black());
