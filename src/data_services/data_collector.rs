@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use color_eyre::eyre::{ErrReport, Result};
 use serde::{Deserialize, Serialize};
 use tokio::time::Instant;
 
@@ -55,7 +56,6 @@ impl Default for DataCollector {
   }
 }
 
-// TODO: Refactor `update_*_info` to be more generic
 impl DataCollector {
   pub fn new() -> Self {
     DataCollector { data: DataCollected::default(), sys: SysinfoSource::default() }
@@ -64,17 +64,14 @@ impl DataCollector {
   pub fn update_data(&mut self) {
     self.refresh_sysinfo();
 
-    self.update_cpu();
-    self.update_process_info();
-    self.update_disk_info();
-    self.update_network_info();
+    // TODO Should this be broken into some combination if Traits?
+    self.data.cpu = self.update_info(|sys: &SysinfoSource| get_cpu_info(&sys.system), "CPU");
+    self.data.processes = self.update_info(|sys: &SysinfoSource| get_process_info(&sys.system), "Process");
+    self.data.disk = self.update_info(|sys: &SysinfoSource| get_disk_info(&sys.disks), "Disk");
+    self.data.networks = self.update_info(|sys: &SysinfoSource| get_network_info(&sys.networks), "Network");
   }
 
   fn refresh_sysinfo(&mut self) {
-    // TODO Make configurable / Refresh only every 60 sec
-    // const REFRESH_TIME = Duration::from_secs(60);
-    // let refresh_start = Instant::now();
-
     self.sys.networks.refresh();
 
     self.sys.system.refresh_cpu();
@@ -87,39 +84,20 @@ impl DataCollector {
     // self.sys.networks.refresh_list();
   }
 
-  fn update_cpu(&mut self) {
-    let cpu = get_cpu_info(&self.sys.system);
-    match cpu {
-      Ok(d) => self.data.cpu = Some(d),
-      Err(_) => todo!(),
-    }
-  }
-
-  fn update_process_info(&mut self) {
-    let process_data = get_process_info(&self.sys.system);
-    match process_data {
-      Ok(d) => self.data.processes = Some(d),
-      Err(_) => todo!(),
-    }
-  }
-
-  fn update_disk_info(&mut self) {
-    let disk_info = get_disk_info(&self.sys.disks);
-    match disk_info {
-      Ok(d) => self.data.disk = Some(d),
-      Err(_) => todo!(),
-    }
-  }
-
-  fn update_network_info(&mut self) {
-    let network_info = get_network_info(&self.sys.networks);
-
-    match network_info {
-      Ok(d) => {
-        log::debug!("Collected Network Data: {:?}", d);
-        self.data.networks = Some(d)
+  fn update_info<F, T>(&self, get_info: F, info_type: &str) -> Option<T>
+  where
+    F: Fn(&SysinfoSource) -> Result<T, ErrReport>,
+    T: std::fmt::Debug,
+  {
+    match get_info(&self.sys) {
+      Ok(info) => {
+        log::debug!("Collected {} Data: {:?}", info_type, info);
+        Some(info)
       },
-      Err(_) => todo!(),
+      Err(_) => {
+        log::warn!("Failed to collect {} Data", info_type);
+        None
+      },
     }
   }
 }
