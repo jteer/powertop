@@ -101,11 +101,7 @@ impl Component for NetworkComponent {
 
     let bottom_row_rects = Layout::default()
       .direction(Direction::Horizontal)
-      .constraints(vec![
-        Constraint::Percentage(33), 
-        Constraint::Percentage(33),
-        Constraint::Percentage(33),
-      ])
+      .constraints(vec![Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(33)])
       .split(rects[1]);
 
     let network_area = bottom_row_rects[2];

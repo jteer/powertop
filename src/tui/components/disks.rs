@@ -90,7 +90,7 @@ impl Component for DiskTable {
       ])
       .split(area);
 
-      let bottom_row_rects = Layout::default()
+    let bottom_row_rects = Layout::default()
       .direction(Direction::Horizontal)
       .constraints(vec![
         Constraint::Percentage(33), // Left half
