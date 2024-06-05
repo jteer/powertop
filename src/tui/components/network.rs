@@ -27,7 +27,6 @@ pub struct NetworkViewModel {
 pub struct NetworkComponent {
   app_start_time: Instant,
   render_start_time: Instant,
-  collected_data: NetworkDataCollection,
   network_view_model: NetworkViewModel,
 }
 
@@ -38,14 +37,15 @@ impl Default for NetworkComponent {
 }
 
 impl NetworkComponent {
+  pub const WIND: usize = 55;
+
   pub fn new() -> Self {
     Self {
       app_start_time: Instant::now(),
       render_start_time: Instant::now(),
-      collected_data: [].to_vec(),
       network_view_model: NetworkViewModel {
-        received: VecDeque::with_capacity(25),
-        transmitted: VecDeque::with_capacity(25),
+        received: VecDeque::with_capacity(NetworkComponent::WIND),
+        transmitted: VecDeque::with_capacity(NetworkComponent::WIND),
         total_transmitted: 0,
         total_received: 0,
       },
@@ -54,17 +54,16 @@ impl NetworkComponent {
 
   fn update_data_stats(&mut self, new_data: NetworkDataCollection) {
     log::debug!("Updating Network Component with new data: {:?}", new_data.len());
-    // self.collected_data.append(&mut new_data);
 
     let received = new_data.iter().map(|c| c.received).collect_vec();
-    if self.network_view_model.received.len() == 25 {
+    if self.network_view_model.received.len() == NetworkComponent::WIND {
       self.network_view_model.received.pop_front();
     }
 
     self.network_view_model.received.push_back(received.iter().sum());
 
     let transmitted = new_data.iter().map(|c| c.transmitted).collect_vec();
-    if self.network_view_model.transmitted.len() == 25 {
+    if self.network_view_model.transmitted.len() == NetworkComponent::WIND {
       self.network_view_model.transmitted.pop_front();
     }
 
@@ -103,9 +102,9 @@ impl Component for NetworkComponent {
     let bottom_row_rects = Layout::default()
       .direction(Direction::Horizontal)
       .constraints(vec![
-        Constraint::Percentage(33), // Left half
-        Constraint::Percentage(33), // Right half
-        Constraint::Percentage(33), // Right half
+        Constraint::Percentage(33), 
+        Constraint::Percentage(33),
+        Constraint::Percentage(33),
       ])
       .split(rects[1]);
 
@@ -119,21 +118,22 @@ impl Component for NetworkComponent {
       .split(inner);
 
     // TODO Value Scaling and Units
+    let max_spark_value = 10000;
     let continuous_rx_values = self.network_view_model.received.make_contiguous();
-    let rx_title = format!("Received {}", self.network_view_model.total_received);
+    let rx_title = format!("Received - {} bytes", self.network_view_model.total_received);
     let rx_spark = Sparkline::default()
       .block(Block::new().title(rx_title))
       .data(&continuous_rx_values)
-      .max(15)
+      .max(max_spark_value)
       .direction(RenderDirection::LeftToRight)
       .style(Style::default().red().black());
 
     let continuous_tx_values = self.network_view_model.transmitted.make_contiguous();
-    let tx_title = format!("Transmitted {}", self.network_view_model.total_transmitted);
+    let tx_title = format!("Transmitted - {} bytes", self.network_view_model.total_transmitted);
     let tx_spark = Sparkline::default()
       .block(Block::new().title(tx_title))
       .data(&continuous_tx_values)
-      .max(15)
+      .max(max_spark_value)
       .direction(RenderDirection::LeftToRight)
       .style(Style::default().red().black());
 
