@@ -8,6 +8,7 @@ use super::{
   processes::{get_process_info, ProcessDataCollection},
 };
 
+// TODO Should the data collection be broken into some combination if Traits?
 // Generic Trait for collecting different data
 // pub trait DataCollector {
 //   type Output;
@@ -69,7 +70,6 @@ impl DataCollector {
   pub fn update_data(&mut self) {
     self.refresh_sysinfo();
 
-    // TODO Should this be broken into some combination if Traits?
     self.data.cpu = self.update_info(|sys: &SysinfoSource| get_cpu_info(&sys.system), "CPU");
     self.data.processes = self.update_info(|sys: &SysinfoSource| get_process_info(&sys.system), "Process");
     self.data.disk = self.update_info(|sys: &SysinfoSource| get_disk_info(&sys.disks), "Disk");
