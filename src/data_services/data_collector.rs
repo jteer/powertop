@@ -1,8 +1,5 @@
-use std::time::Duration;
-
 use color_eyre::eyre::{ErrReport, Result};
 use serde::{Deserialize, Serialize};
-use tokio::time::Instant;
 
 use super::{
   cpu::{get_cpu_info, CpuDataCollection},
@@ -18,6 +15,7 @@ use super::{
 //   fn collect(&self, params: Self::Params) -> Self::Output;
 // }
 
+/// Represents the source of system information, including system, disk, and network data.
 #[derive(Debug)]
 pub struct SysinfoSource {
   pub(crate) system: sysinfo::System,
@@ -26,6 +24,7 @@ pub struct SysinfoSource {
 }
 
 impl Default for SysinfoSource {
+  /// Creates a new `SysinfoSource` with refreshed lists of disks and networks.
   fn default() -> Self {
     use sysinfo::*;
     Self {
@@ -36,6 +35,7 @@ impl Default for SysinfoSource {
   }
 }
 
+/// A structure holding collected data from various system components.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct DataCollected {
   pub cpu: Option<CpuDataCollection>,
@@ -44,6 +44,7 @@ pub struct DataCollected {
   pub networks: Option<NetworkDataCollection>,
 }
 
+/// Manages the collection of data from the system, including CPU, processes, disks, and networks.
 #[derive(Debug)]
 pub struct DataCollector {
   pub data: DataCollected,
@@ -51,16 +52,20 @@ pub struct DataCollector {
 }
 
 impl Default for DataCollector {
+  /// Creates a new `DataCollector` with default values.
   fn default() -> Self {
     Self::new()
   }
 }
 
 impl DataCollector {
+  /// Creates a new `DataCollector` instance with default data and system information source.
   pub fn new() -> Self {
     DataCollector { data: DataCollected::default(), sys: SysinfoSource::default() }
   }
 
+  /// Updates all the collected data by refreshing system information and then collecting
+  /// data for CPU, processes, disks, and networks.
   pub fn update_data(&mut self) {
     self.refresh_sysinfo();
 
@@ -71,6 +76,7 @@ impl DataCollector {
     self.data.networks = self.update_info(|sys: &SysinfoSource| get_network_info(&sys.networks), "Network");
   }
 
+  /// Refreshes system information, including networks, CPU, processes, and disks.
   fn refresh_sysinfo(&mut self) {
     self.sys.networks.refresh();
 
@@ -83,6 +89,17 @@ impl DataCollector {
 
     // self.sys.networks.refresh_list();
   }
+
+  /// Collects information using the provided function and logs the result.
+  ///
+  /// # Arguments
+  ///
+  /// * `get_info` - A function that collects the information from the `SysinfoSource`.
+  /// * `info_type` - A string representing the type of information being collected.
+  ///
+  /// # Returns
+  ///
+  /// An `Option` containing the collected data if successful, or `None` if there was an error.
 
   fn update_info<F, T>(&self, get_info: F, info_type: &str) -> Option<T>
   where
