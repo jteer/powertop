@@ -1,7 +1,5 @@
-use std::time::Duration;
-
+use color_eyre::eyre::{ErrReport, Result};
 use serde::{Deserialize, Serialize};
-use tokio::time::Instant;
 
 use super::{
   cpu::{get_cpu_info, CpuDataCollection},
@@ -10,6 +8,7 @@ use super::{
   processes::{get_process_info, ProcessDataCollection},
 };
 
+// TODO Should the data collection be broken into some combination if Traits?
 // Generic Trait for collecting different data
 // pub trait DataCollector {
 //   type Output;
@@ -17,6 +16,7 @@ use super::{
 //   fn collect(&self, params: Self::Params) -> Self::Output;
 // }
 
+/// Represents the source of system information, including system, disk, and network data.
 #[derive(Debug)]
 pub struct SysinfoSource {
   pub(crate) system: sysinfo::System,
@@ -25,6 +25,7 @@ pub struct SysinfoSource {
 }
 
 impl Default for SysinfoSource {
+  /// Creates a new `SysinfoSource` with refreshed lists of disks and networks.
   fn default() -> Self {
     use sysinfo::*;
     Self {
@@ -35,6 +36,7 @@ impl Default for SysinfoSource {
   }
 }
 
+/// A structure holding collected data from various system components.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct DataCollected {
   pub cpu: Option<CpuDataCollection>,
@@ -43,6 +45,7 @@ pub struct DataCollected {
   pub networks: Option<NetworkDataCollection>,
 }
 
+/// Manages the collection of data from the system, including CPU, processes, disks, and networks.
 #[derive(Debug)]
 pub struct DataCollector {
   pub data: DataCollected,
@@ -50,31 +53,31 @@ pub struct DataCollector {
 }
 
 impl Default for DataCollector {
+  /// Creates a new `DataCollector` with default values.
   fn default() -> Self {
     Self::new()
   }
 }
 
-// TODO: Refactor `update_*_info` to be more generic
 impl DataCollector {
+  /// Creates a new `DataCollector` instance with default data and system information source.
   pub fn new() -> Self {
     DataCollector { data: DataCollected::default(), sys: SysinfoSource::default() }
   }
 
+  /// Updates all the collected data by refreshing system information and then collecting
+  /// data for CPU, processes, disks, and networks.
   pub fn update_data(&mut self) {
     self.refresh_sysinfo();
 
-    self.update_cpu();
-    self.update_process_info();
-    self.update_disk_info();
-    self.update_network_info();
+    self.data.cpu = self.update_info(|sys: &SysinfoSource| get_cpu_info(&sys.system), "CPU");
+    self.data.processes = self.update_info(|sys: &SysinfoSource| get_process_info(&sys.system), "Process");
+    self.data.disk = self.update_info(|sys: &SysinfoSource| get_disk_info(&sys.disks), "Disk");
+    self.data.networks = self.update_info(|sys: &SysinfoSource| get_network_info(&sys.networks), "Network");
   }
 
+  /// Refreshes system information, including networks, CPU, processes, and disks.
   fn refresh_sysinfo(&mut self) {
-    // TODO Make configurable / Refresh only every 60 sec
-    // const REFRESH_TIME = Duration::from_secs(60);
-    // let refresh_start = Instant::now();
-
     self.sys.networks.refresh();
 
     self.sys.system.refresh_cpu();
@@ -87,39 +90,30 @@ impl DataCollector {
     // self.sys.networks.refresh_list();
   }
 
-  fn update_cpu(&mut self) {
-    let cpu = get_cpu_info(&self.sys.system);
-    match cpu {
-      Ok(d) => self.data.cpu = Some(d),
-      Err(_) => todo!(),
-    }
-  }
-
-  fn update_process_info(&mut self) {
-    let process_data = get_process_info(&self.sys.system);
-    match process_data {
-      Ok(d) => self.data.processes = Some(d),
-      Err(_) => todo!(),
-    }
-  }
-
-  fn update_disk_info(&mut self) {
-    let disk_info = get_disk_info(&self.sys.disks);
-    match disk_info {
-      Ok(d) => self.data.disk = Some(d),
-      Err(_) => todo!(),
-    }
-  }
-
-  fn update_network_info(&mut self) {
-    let network_info = get_network_info(&self.sys.networks);
-
-    match network_info {
-      Ok(d) => {
-        log::debug!("Collected Network Data: {:?}", d);
-        self.data.networks = Some(d)
+  /// Collects information using the provided function and logs the result.
+  ///
+  /// # Arguments
+  ///
+  /// * `get_info` - A function that collects the information from the `SysinfoSource`.
+  /// * `info_type` - A string representing the type of information being collected.
+  ///
+  /// # Returns
+  ///
+  /// An `Option` containing the collected data if successful, or `None` if there was an error.
+  fn update_info<F, T>(&self, get_info: F, info_type: &str) -> Option<T>
+  where
+    F: Fn(&SysinfoSource) -> Result<T, ErrReport>,
+    T: std::fmt::Debug,
+  {
+    match get_info(&self.sys) {
+      Ok(info) => {
+        log::debug!("Collected {} Data: {:?}", info_type, info);
+        Some(info)
       },
-      Err(_) => todo!(),
+      Err(_) => {
+        log::warn!("Failed to collect {} Data", info_type);
+        None
+      },
     }
   }
 }
