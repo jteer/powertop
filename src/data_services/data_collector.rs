@@ -100,7 +100,6 @@ impl DataCollector {
   /// # Returns
   ///
   /// An `Option` containing the collected data if successful, or `None` if there was an error.
-
   fn update_info<F, T>(&self, get_info: F, info_type: &str) -> Option<T>
   where
     F: Fn(&SysinfoSource) -> Result<T, ErrReport>,
