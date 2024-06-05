@@ -10,6 +10,7 @@ pub mod cpu;
 pub mod disks;
 pub mod fps;
 pub mod home;
+pub mod network;
 pub mod process_table;
 
 /// `Component` is a trait that represents a visual and interactive element of the user interface.

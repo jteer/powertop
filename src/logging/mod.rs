@@ -7,7 +7,7 @@ use tracing_subscriber::{self, prelude::__tracing_subscriber_SubscriberExt, util
 use crate::configuration::app_configuration::{get_data_dir, PROJECT_NAME};
 
 lazy_static! {
-  pub static ref LOG_ENV: String = format!("{}_LOGLEVEL", PROJECT_NAME.clone());
+  pub static ref LOG_ENV: String = format!("{}_LOG_LEVEL", PROJECT_NAME.clone());
   pub static ref LOG_FILE: String = format!("{}.log", env!("CARGO_PKG_NAME"));
 }
 

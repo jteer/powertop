@@ -33,6 +33,9 @@ Yet another Cross-platform graphical process/system monitor for the terminal
             - [ ] Separate Display as pie chart similar to [gtop disk display](https://github.com/aksakalli/gtop/blob/master/README.md)
     - [ ] GPU / Temp
     - [ ] Network
+        - [x] Initial Component
+        - [x] Initial Data Collection
+        - [ ] Improved Component Visual
     - [ ] Memory
 - [ ] Internal
     - [ ] Additional Logging / Tracing 
