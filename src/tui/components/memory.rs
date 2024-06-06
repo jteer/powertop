@@ -59,14 +59,17 @@ impl MemoryComponent {
     self.memory_view_model.total_swap = new_data.total_swap;
 
     let (ram_percent, swap_percent) = new_data.usage_percentages();
-
     if self.memory_view_model.available_ram.len() == MemoryComponent::WINDOW_SIZE {
       self.memory_view_model.available_ram.pop_front();
+      //   Shift the x value by -1 so the graph plots correctly
+      self.memory_view_model.available_ram.iter_mut().for_each(|f| f.0 -= 1.0);
     }
     self.memory_view_model.available_ram.push_back((self.memory_view_model.available_ram.len() as f64, ram_percent));
 
     if self.memory_view_model.available_swap.len() == MemoryComponent::WINDOW_SIZE {
       self.memory_view_model.available_swap.pop_front();
+      //   Shift the x value by -1 so the graph plots correctly
+      self.memory_view_model.available_swap.iter_mut().for_each(|f| f.0 -= 1.0);
     }
     self.memory_view_model.available_swap.push_back((self.memory_view_model.available_swap.len() as f64, swap_percent));
   }
@@ -88,44 +91,35 @@ impl Component for MemoryComponent {
   fn draw(&mut self, frame: &mut Frame<'_>, area: Rect) -> Result<()> {
     let rects = Layout::default()
       .direction(Direction::Vertical)
-      .constraints(vec![
-        Constraint::Percentage(50), // Top row spans whole width
-        Constraint::Percentage(50), // Bottom row split 50/50
-      ])
+      .constraints(vec![Constraint::Percentage(50), Constraint::Percentage(50)])
       .split(area);
     let top_row = rects[0];
     let top_row_rects = Layout::default()
       .direction(Direction::Horizontal)
-      .constraints(vec![
-        Constraint::Percentage(50), // Top row spans whole width
-        Constraint::Percentage(50), // Bottom row split 50/50
-      ])
+      .constraints(vec![Constraint::Percentage(50), Constraint::Percentage(50)])
       .split(top_row);
     let memory_rect = top_row_rects[1];
 
     let x_axis = Axis::default().style(Style::default().white()).bounds([0.0, 100.0]);
-
     let y_axis = Axis::default().style(Style::default().white()).bounds([0.0, 100.0]);
 
     let ram_data = self.memory_view_model.available_ram.make_contiguous();
-    let current_ram_value = match ram_data.last() {
-      Some(v) => v.1,
-      None => 0.0,
-    };
+    let swap_data = self.memory_view_model.available_swap.make_contiguous();
+
+    let zero_percent = String::from("0.0 %");
+    let current_ram_value_str =
+      if let Some(v) = ram_data.last() { format!("{:.1$}%", v.1, 2) } else { zero_percent.clone() };
+    let current_swap_value_str = if let Some(v) = swap_data.last() { format!("{:.1$}%", v.1, 2) } else { zero_percent };
+
     let ram_data_set = Dataset::default()
-      .name(format!("RAM {:.1$}%", current_ram_value, 2))
+      .name(format!("RAM {}", current_ram_value_str))
       .marker(symbols::Marker::Dot)
       .graph_type(GraphType::Line)
       .style(Style::default().cyan())
       .data(ram_data);
 
-    let swap_data = self.memory_view_model.available_swap.make_contiguous();
-    let current_swap_value = match swap_data.last() {
-      Some(v) => v.1,
-      None => 0.0,
-    };
     let swap_data_set = Dataset::default()
-      .name(format!("SWAP {:.1$}%", current_swap_value, 2))
+      .name(format!("SWAP {}", current_swap_value_str))
       .marker(symbols::Marker::Dot)
       .graph_type(GraphType::Line)
       .style(Style::default().red())
