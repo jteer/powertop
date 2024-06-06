@@ -36,6 +36,9 @@ Yet another Cross-platform graphical process/system monitor for the terminal
         - [x] Initial Component
         - [x] Initial Data Collection
         - [ ] Improved Component Visual
+            - [ ] Unit Conversion
     - [ ] Memory
+        - [x] Initial Component
+        - [x] Initial Data Collection
 - [ ] Internal
     - [ ] Additional Logging / Tracing 
