@@ -36,6 +36,14 @@ Yet another Cross-platform graphical process/system monitor for the terminal
         - [x] Initial Component
         - [x] Initial Data Collection
         - [ ] Improved Component Visual
+            - [ ] Unit Conversion
     - [ ] Memory
+        - [x] Initial Component
+        - [x] Initial Data Collection
+        - [ ] Improved Component Visual
+            - [ ] Support More Graph Types
+                - [ ] Bar Chart
+                - [ ] Pie Chart
 - [ ] Internal
     - [ ] Additional Logging / Tracing 
+    - [ ] Add Unit Testing

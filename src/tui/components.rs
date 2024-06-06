@@ -10,6 +10,7 @@ pub mod cpu;
 pub mod disks;
 pub mod fps;
 pub mod home;
+pub mod memory;
 pub mod network;
 pub mod process_table;
 

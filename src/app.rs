@@ -13,8 +13,8 @@ use crate::{
     self,
     action::Action,
     components::{
-      cpu::Cpu, disks::DiskTable, fps::FpsCounter, home::Home, network::NetworkComponent, process_table::ProcessTable,
-      Component,
+      cpu::Cpu, disks::DiskTable, fps::FpsCounter, home::Home, memory::MemoryComponent, network::NetworkComponent,
+      process_table::ProcessTable, Component,
     },
     mode::Mode,
     ui::{Event, Tui},
@@ -39,13 +39,20 @@ impl App {
     let process_table = ProcessTable::new();
     let disk_table = DiskTable::new();
     let network_component = NetworkComponent::new();
+    let memory_component = MemoryComponent::new();
 
     let config = Config::new()?;
     let mode = Mode::Home;
     Ok(App {
       tick_rate,
       frame_rate,
-      components: vec![Box::new(cpu), Box::new(process_table), Box::new(disk_table), Box::new(network_component)],
+      components: vec![
+        Box::new(cpu),
+        Box::new(process_table),
+        Box::new(disk_table),
+        Box::new(network_component),
+        Box::new(memory_component),
+      ],
       should_quit: false,
       should_suspend: false,
       config,

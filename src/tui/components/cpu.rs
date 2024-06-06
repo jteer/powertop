@@ -181,12 +181,19 @@ impl Component for Cpu {
     let rects = Layout::default()
       .direction(Direction::Vertical)
       .constraints(vec![
-        Constraint::Percentage(100), // Top row spans whole width
-        Constraint::Percentage(50),  // Bottom row split 50/50
+        Constraint::Percentage(50), // Top row spans whole width
+        Constraint::Percentage(50), // Bottom row split 50/50
       ])
       .split(area);
-    let rect = rects[0];
-
+    let top_row = rects[0];
+    let top_row_rects = Layout::default()
+      .direction(Direction::Horizontal)
+      .constraints(vec![
+        Constraint::Percentage(50), // Top row spans whole width
+        Constraint::Percentage(50), // Bottom row split 50/50
+      ])
+      .split(top_row);
+    let cpu_rect = top_row_rects[0];
     // TODO: CPU Ordering on both graphs
     // TODO: Handle Data Cleaning
     // TODO: Each of these charts could be moved into its own "Widget" module as an abstraction over ratatui so it can be easy to implement new charts
@@ -216,16 +223,16 @@ impl Component for Cpu {
           .hidden_legend_constraints((Constraint::Ratio(1, 2), Constraint::Ratio(1, 2)))
           .legend_position(Some(LegendPosition::TopRight));
 
-        frame.render_widget(chart, rect);
+        frame.render_widget(chart, cpu_rect);
       },
       CpuGraphType::BarChart => {
         // TODO: For each bar draw the previous value + new value to show change?
         let dataset = self.get_bar_chart_datasets();
         let chart = BarChart::default()
           .block(Block::bordered().title("CPU"))
-          .bar_width(6)
-          .bar_gap(5)
-          .group_gap(5)
+          .bar_width(4)
+          .bar_gap(3)
+          .group_gap(3)
           .bar_style(Style::new().blue().on_black())
           .value_style(Style::new().white().bold())
           .label_style(Style::new().black())
@@ -234,7 +241,7 @@ impl Component for Cpu {
           .data(BarGroup::default().bars(&dataset))
           .max(100);
 
-        frame.render_widget(chart, rect);
+        frame.render_widget(chart, cpu_rect);
       },
     };
 

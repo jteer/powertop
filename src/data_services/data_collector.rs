@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use super::{
   cpu::{get_cpu_info, CpuDataCollection},
   disks::{get_disk_info, DiskDataCollection},
+  memory::{get_memory_info, MemoryData},
   network::{get_network_info, NetworkDataCollection},
   processes::{get_process_info, ProcessDataCollection},
 };
@@ -29,7 +30,12 @@ impl Default for SysinfoSource {
   fn default() -> Self {
     use sysinfo::*;
     Self {
-      system: System::new_with_specifics(RefreshKind::new()),
+      system: System::new_with_specifics(
+        RefreshKind::new()
+          .with_processes(ProcessRefreshKind::everything())
+          .with_cpu(CpuRefreshKind::everything())
+          .with_memory(MemoryRefreshKind::everything()),
+      ),
       disks: Disks::new_with_refreshed_list(),
       networks: Networks::new_with_refreshed_list(),
     }
@@ -43,6 +49,7 @@ pub struct DataCollected {
   pub processes: Option<ProcessDataCollection>,
   pub disk: Option<DiskDataCollection>,
   pub networks: Option<NetworkDataCollection>,
+  pub memory: Option<MemoryData>,
 }
 
 /// Manages the collection of data from the system, including CPU, processes, disks, and networks.
@@ -66,7 +73,7 @@ impl DataCollector {
   }
 
   /// Updates all the collected data by refreshing system information and then collecting
-  /// data for CPU, processes, disks, and networks.
+  /// data for CPU, processes, disks, networks and memory.
   pub fn update_data(&mut self) {
     self.refresh_sysinfo();
 
@@ -74,20 +81,26 @@ impl DataCollector {
     self.data.processes = self.update_info(|sys: &SysinfoSource| get_process_info(&sys.system), "Process");
     self.data.disk = self.update_info(|sys: &SysinfoSource| get_disk_info(&sys.disks), "Disk");
     self.data.networks = self.update_info(|sys: &SysinfoSource| get_network_info(&sys.networks), "Network");
+    self.data.memory = self.update_info(|sys: &SysinfoSource| get_memory_info(&sys.system), "Memory");
   }
 
   /// Refreshes system information, including networks, CPU, processes, and disks.
   fn refresh_sysinfo(&mut self) {
     self.sys.networks.refresh();
+    // self.sys.networks.refresh_list();
 
+    // cpu
     self.sys.system.refresh_cpu();
 
+    // processes
     self.sys.system.refresh_processes();
 
+    // disk
     self.sys.disks.refresh_list();
     self.sys.disks.refresh();
 
-    // self.sys.networks.refresh_list();
+    // memory (RAM & SWAP)
+    self.sys.system.refresh_memory();
   }
 
   /// Collects information using the provided function and logs the result.
